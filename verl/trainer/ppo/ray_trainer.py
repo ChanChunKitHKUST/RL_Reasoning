@@ -570,7 +570,7 @@ class RayPPOTrainer(object):
                                        filter_prompts=True,
                                        return_raw_chat=self.config.data.get('return_raw_chat', False),
                                        truncation='error')
-        self.val_dataloader = DataLoader(dataset=self.val_dataset,
+        self.val_dataloader = StatefulDataLoader(dataset=self.val_dataset,
                                          batch_size=len(self.val_dataset),
                                          shuffle=True,
                                          drop_last=True,
