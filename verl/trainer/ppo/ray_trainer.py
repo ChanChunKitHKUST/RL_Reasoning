@@ -632,9 +632,6 @@ class RayPPOTrainer(object):
 
         for test_data in self.val_dataloader:
             test_batch = DataProto.from_single_dict(test_data)
-            # print example of the first batch
-            print('validation generation start')
-            print('input:', self.tokenizer.decode(test_batch.batch['input_ids'][1], skip_special_tokens=True))
             # we only do validation on rule-based rm
             if self.config.reward_model.enable and test_batch[0].non_tensor_batch['reward_model']['style'] == 'model':
                 return {}
