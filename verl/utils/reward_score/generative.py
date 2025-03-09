@@ -45,7 +45,7 @@ async def _query_openai_async(client: AsyncOpenAI, sequence_str: str, config) ->
     """
     max_retries = config.max_retries  # Maximum number of retries
     retry_count = 0
-    scoring_prompt = open(config.scoring_prompt, "r").read()
+    scoring_prompt = config.scoring_prompt  # Scoring prompt
     min_score = config.min_score  # Minimum valid score
     max_score = config.max_score  # Maximum valid score
     while retry_count < max_retries:
