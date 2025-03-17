@@ -19,6 +19,7 @@ import torch
 from typing import List, Dict, Any
 from verl.utils.reward_score.generative import process_data_async
 
+
 def _compute_score(data_source: List[str], solution_str: List[str], ground_truth: List[str],
                    extra_info: List[Dict[str, Any]], config: Dict[str, Any]) -> torch.Tensor:
     loop = asyncio.get_event_loop()
