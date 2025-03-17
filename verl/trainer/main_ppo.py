@@ -148,7 +148,6 @@ def main_task(config):
         raise NotImplementedError
 
     compute_score = get_custom_reward_fn(config)
-
     reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=0, compute_score=compute_score)
 
     # Note that we always use function-based RM for validation
