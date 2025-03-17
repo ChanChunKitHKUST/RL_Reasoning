@@ -140,13 +140,7 @@ def main_task(config, compute_score=None):
     
     compute_score = get_custom_reward_fn(config)
 
-    if reward_manager_name == 'generative':
-        reward_fn = reward_manager_cls(tokenizer=tokenizer,
-                                       num_examine=0,
-                                       compute_score=compute_score,
-                                       config=config.reward_model.reward_manager_config)
-    else:
-        reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=0, compute_score=compute_score)
+    reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=0, compute_score=compute_score)
 
     # Note that we always use function-based RM for validation
     val_reward_fn = reward_manager_cls(tokenizer=tokenizer, num_examine=1, compute_score=compute_score)

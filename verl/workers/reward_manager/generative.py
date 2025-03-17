@@ -14,11 +14,10 @@
 
 import asyncio
 import numpy as np
-import re
+import yaml
 import torch
 from typing import List, Dict, Any
 from verl.utils.reward_score.generative import process_data_async
-
 
 def _compute_score(data_source: List[str], solution_str: List[str], ground_truth: List[str],
                    extra_info: List[Dict[str, Any]], config: Dict[str, Any]) -> torch.Tensor:
@@ -33,12 +32,11 @@ class GenerativeRewardManager:
         tokenizer,
         num_examine: int,
         compute_score=None,
-        config: Dict[str, Any] = None,
     ):
         self.tokenizer = tokenizer
         self.num_examine = num_examine
         self.compute_score = _compute_score if compute_score is None else compute_score
-        self.config = config
+        self.config = yaml.safe_load(open('verl/trainer/config/generation.yaml', 'r'))
 
     def __call__(self, data: List[Dict[str, Any]]) -> torch.Tensor:
         if 'rm_scores' in data.batch.keys():
