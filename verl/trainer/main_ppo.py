@@ -134,7 +134,6 @@ def main_task(config):
             raise NotImplementedError
         role_worker_mapping[Role.RewardModel] = ray.remote(RewardModelWorker)
         mapping[Role.RewardModel] = global_pool_id
-
     reward_manager_name = config.reward_model.get("reward_manager", "naive")
     if reward_manager_name == 'naive':
         from verl.workers.reward_manager import NaiveRewardManager
@@ -142,6 +141,9 @@ def main_task(config):
     elif reward_manager_name == 'prime':
         from verl.workers.reward_manager import PrimeRewardManager
         reward_manager_cls = PrimeRewardManager
+    elif reward_manager_name == 'generative':
+        from verl.workers.reward_manager import GenerativeRewardManager
+        reward_manager_cls = GenerativeRewardManager
     else:
         raise NotImplementedError
 
