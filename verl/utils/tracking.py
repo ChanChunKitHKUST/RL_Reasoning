@@ -19,10 +19,11 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 from typing import List, Union, Dict, Any
+import os
 
 
 class Tracking(object):
-    supported_backend = ["wandb", "mlflow", "swanlab", "vemlp_wandb", "tensorboard", "console"]
+    supported_backend = ["wandb", "mlflow", "swanlab", "vemlp_wandb", "tensorboard", "console", "database"]
 
     def __init__(self, project_name, experiment_name, default_backend: Union[str, List[str]] = 'console', config=None):
         if isinstance(default_backend, str):
@@ -179,13 +180,17 @@ def _flatten_dict(raw: Dict[str, Any], *, sep: str) -> Dict[str, Any]:
 @dataclasses.dataclass
 class ValidationGenerationsLogger:
 
-    def log(self, loggers, samples, step):
+    def log(self, loggers, samples, step, epoch=None, data_dir=None):
         if 'wandb' in loggers:
             self.log_generations_to_wandb(samples, step)
         if 'swanlab' in loggers:
             self.log_generations_to_swanlab(samples, step)
         if 'mlflow' in loggers:
             self.log_generations_to_mlflow(samples, step)
+        if 'database' in loggers:
+            if data_dir is None:
+                raise ValueError("data_dir must be provided for database logging")
+            self.log_generations_to_database(samples, step, epoch, data_dir)
 
     def log_generations_to_wandb(self, samples, step):
         """Log samples to wandb as a table"""
@@ -255,3 +260,60 @@ class ValidationGenerationsLogger:
                 mlflow.log_artifact(validation_gen_step_file)
         except Exception as e:
             print(f"WARNING: save validation generation file to mlflow failed with error {e}")
+
+    def log_generations_to_database(self, samples, step, epoch, data_dir):
+        """Log the rollout samples to a parquet file at data_dir"""
+        import os
+        from datasets import Dataset
+
+        num_samples = len(samples)
+
+        # Create a Dataset from the samples
+        data = {
+            "input": [sample[0] for sample in samples],
+            "output": [sample[1] for sample in samples],
+            "score": [sample[2] for sample in samples],
+            "epoch": [epoch] * num_samples,
+            "step": [step] * num_samples
+        }
+        dataset = Dataset.from_dict(data)
+
+        # Define the path for the parquet file
+        file_path = os.path.join(data_dir, f"validation_step_{step}.parquet")
+
+        # Write the Dataset to a parquet file
+        dataset.to_parquet(file_path)
+
+
+@dataclasses.dataclass
+class RolloutLogger:
+
+    def log(self, loggers, samples, step, epoch=None, data_dir=None):
+        if 'database' in loggers:
+            if data_dir is None:
+                raise ValueError("Data directory must be provided for database logging")
+            if epoch is None:
+                raise ValueError("Epoch number be provided for database logging")
+            self.log_generations_to_database(samples, step, epoch, data_dir)
+
+    def log_generations_to_database(self, samples, step, epoch, data_dir):
+        """Log the rollout samples to a parquet file at data_dir"""
+        import os
+        from datasets import Dataset
+
+        num_samples = len(samples)
+        # Create a Dataset from the samples
+        data = {
+            "input": [sample[0] for sample in samples],
+            "output": [sample[1] for sample in samples],
+            "score": [sample[2] for sample in samples],
+            "epoch": [epoch] * num_samples,
+            "step": [step] * num_samples
+        }
+        dataset = Dataset.from_dict(data)
+
+        # Define the path for the parquet file
+        file_path = os.path.join(data_dir, f"rollout_step_{step}.parquet")
+
+        # Write the Dataset to a parquet file
+        dataset.to_parquet(file_path)
