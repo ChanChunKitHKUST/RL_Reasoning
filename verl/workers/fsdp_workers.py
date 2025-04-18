@@ -404,6 +404,10 @@ class ActorRolloutRefWorker(Worker):
             # get the original unwrapped module
             self.actor_module = self.actor_module_fsdp._fsdp_wrapped_module
 
+            if self._is_offload_param:
+                offload_fsdp_model_to_cpu(self.actor_module_fsdp)
+                log_gpu_memory_usage('After offload actor model during init', logger=logger)
+
             if self._is_offload_optimizer:
                 offload_fsdp_optimizer(optimizer=self.actor_optimizer)
                 log_gpu_memory_usage('After offload actor optimizer during init', logger=logger)
@@ -485,8 +489,10 @@ class ActorRolloutRefWorker(Worker):
 
         if self._is_offload_param:
             offload_fsdp_model_to_cpu(self.actor_module_fsdp)
+            log_gpu_memory_usage('After offload actor model during update_actor', logger=logger)
         if self._is_offload_optimizer:
             offload_fsdp_optimizer(optimizer=self.actor_optimizer)
+            log_gpu_memory_usage('After offload actor optimizer during update_actor', logger=logger)
 
         return output
 
@@ -554,6 +560,8 @@ class ActorRolloutRefWorker(Worker):
                                          meta_info={'temperature': self.config.rollout.temperature})
             output = self.ulysses_sharding_manager.postprocess_data(output)
 
+            log_gpu_memory_usage('After compute_log_prob', logger=logger)
+
         output = output.to('cpu')
 
         # https://pytorch.org/docs/stable/notes/fsdp.html#fsdp-notes
@@ -563,8 +571,8 @@ class ActorRolloutRefWorker(Worker):
 
         if self._is_offload_param:
             offload_fsdp_model_to_cpu(self.actor_module_fsdp)
+            log_gpu_memory_usage('After offload actor model during compute_log_prob', logger=logger)
 
-        log_gpu_memory_usage('After compute_log_prob', logger=logger)
         return output
 
     @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)
@@ -809,8 +817,10 @@ class CriticWorker(Worker):
 
         if self._is_offload_param:
             offload_fsdp_model_to_cpu(self.critic_module)
+            log_gpu_memory_usage('After offload critic model during init', logger=logger)
         if self._is_offload_optimizer:
             offload_fsdp_optimizer(optimizer=self.critic_optimizer)
+            log_gpu_memory_usage('After offload critic optimizer during init', logger=logger)
 
         self.critic = DataParallelPPOCritic(config=self.config,
                                             critic_module=self.critic_module,
