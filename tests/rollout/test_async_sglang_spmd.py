@@ -25,10 +25,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import os
 
 import torch
-from sglang.srt.entrypoints.verl_engine import VerlEngine
+from sglang.srt.entrypoints.engine import Engine
+from sglang.srt.utils import broadcast_pyobj
 from torch.distributed.device_mesh import init_device_mesh
 from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
@@ -149,16 +151,18 @@ def test_sglang_spmd():
         if k in os.environ:
             del os.environ[k]
     print("building sglang rollout engine")
-    llm = VerlEngine(
-        model_path=local_model_path,
-        dtype="bfloat16",
-        mem_fraction_static=0.5,
-        device_mesh_cpu=inference_device_mesh_cpu["tp"],
-        base_gpu_id=0,
-        gpu_id_step=1,
-    )
+    tp_rank = inference_device_mesh_cpu["tp"].get_local_rank()
+    if tp_rank == 0:
+        llm = Engine(
+            model_path=local_model_path,
+            dtype="bfloat16",
+            mem_fraction_static=0.5,
+            enable_memory_saver=True,
+            tp_size=inference_device_mesh_cpu["tp"].size(),
+        )
+    else:
+        llm = None
 
-    llm.release_memory_occupation()
     print("start generation")
     input_ids = input_ids.cuda()
     attention_mask = attention_mask.cuda()
@@ -192,7 +196,17 @@ def test_sglang_spmd():
     for i in range(batch_size):
         idx_list.append(_pre_process_inputs(pad_token_id, input_ids[i]))
 
-    outputs = llm.generate(input_ids=idx_list, sampling_params=sampling_params)
+    if tp_rank == 0:
+        outputs = asyncio.run(llm.async_generate(input_ids=idx_list, sampling_params=sampling_params))
+    else:
+        outputs = None
+
+    [outputs] = broadcast_pyobj(
+        data=[outputs],
+        rank=tp_rank,
+        dist_group=inference_device_mesh_cpu["tp"].get_group(),
+        src=0,
+    )
     sglang_response_tokens = []
 
     for output in outputs:

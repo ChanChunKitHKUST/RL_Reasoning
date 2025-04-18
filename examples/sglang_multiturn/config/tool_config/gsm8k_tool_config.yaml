@@ -1,0 +1,15 @@
+tools:
+  - class_name: "verl.workers.tool.gsm8k_tool.Gsm8kTool"
+    config: {}
+    tool_schema:
+      type: "function"
+      function:
+        name: "calc_gsm8k_reward"
+        description: "A tool for calculating the reward of gsm8k"
+        parameters:
+          type: "object"
+          properties:
+            answer:
+              type: "string"
+              description: "The model's answer to the GSM8K math problem, must be a digits"
+          required: ["answer"]

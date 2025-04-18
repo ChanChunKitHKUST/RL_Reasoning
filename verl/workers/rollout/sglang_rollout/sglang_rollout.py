@@ -145,9 +145,12 @@ class SGLangRollout(BaseRollout):
         # get tp_rank of this process in this tp group
         tp_rank = device_mesh_cpu["tp"].get_local_rank()
         visible_devices = [None] * device_mesh_cpu.size(1)
+
+        # TODO(yuzhen): add multi-node support in async_sglang_rollout
         torch.distributed.all_gather_object(
             visible_devices, os.environ["CUDA_VISIBLE_DEVICES"], device_mesh_cpu.get_group("tp")
         )
+
         visible_devices_set = set(visible_devices)
         os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(sorted(list(visible_devices_set)))
 
@@ -268,6 +271,7 @@ class SGLangRollout(BaseRollout):
                 )
 
         # Extract token IDs and image data for SGLang Engine
+        # TODO(yuzhen): add image support in async_sglang_rollout
         idx_list = [input_data["prompt_token_ids"] for input_data in sglang_inputs]
         image_list = [input_data.get("image_data", None) for input_data in sglang_inputs]
 

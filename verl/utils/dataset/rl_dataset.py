@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import copy
+import logging
 import os
 import re
 from collections import defaultdict
@@ -27,6 +28,8 @@ from transformers import PreTrainedTokenizer, ProcessorMixin
 
 import verl.utils.torch_functional as verl_F
 from verl.utils.model import compute_position_id_with_mask
+
+logger = logging.getLogger(__name__)
 
 
 def collate_fn(data_list: list[dict]) -> dict:
@@ -60,12 +63,14 @@ class RLHFDataset(Dataset):
         tokenizer: PreTrainedTokenizer,
         config: DictConfig,
         processor: Optional[ProcessorMixin] = None,
+        need_tools_kwargs=False,
     ):
         if not isinstance(data_files, (List, ListConfig)):
             data_files = [data_files]
 
         self.data_files = copy.deepcopy(data_files)
         self.original_data_files = copy.deepcopy(data_files)  # use for resume
+
         self.tokenizer = tokenizer
         self.processor = processor
         self.config = config
@@ -82,6 +87,8 @@ class RLHFDataset(Dataset):
 
         self.num_workers = config.get("filter_overlong_prompts_workers", max(1, os.cpu_count() // 4))
         self.num_workers = min(self.num_workers, os.cpu_count())
+
+        self.need_tools_kwargs = need_tools_kwargs
 
         # whether to store the dataset in state_dict()
         # default not store
@@ -241,8 +248,11 @@ class RLHFDataset(Dataset):
 
         # add index for each prompt
         index = row_dict.get("extra_info", {}).get("index", 0)
+        tools_kwargs = row_dict.get("extra_info", {}).get("tools_kwargs", {})
+        if self.need_tools_kwargs and not tools_kwargs:
+            logger.warning(f"tools_kwargs is empty for index {index}, data source: {row_dict['data_source']}")
         row_dict["index"] = index
-
+        row_dict["tools_kwargs"] = tools_kwargs
         return row_dict
 
     def __getstate__(self):

@@ -410,6 +410,7 @@ def compute_policy_loss(
     )
 
     pg_losses = torch.where(advantages < 0, clip_pg_losses2, clip_pg_losses1)
+    # TODO(xiang): check if the loss_mask should be changed when using multi_turn mode
     pg_loss = agg_loss(loss_mat=pg_losses, loss_mask=response_mask, loss_agg_mode=loss_agg_mode)
 
     return pg_loss, pg_clipfrac, ppo_kl, pg_clipfrac_lower
