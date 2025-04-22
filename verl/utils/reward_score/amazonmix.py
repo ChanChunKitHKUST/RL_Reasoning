@@ -3,13 +3,14 @@ from typing import Dict, Tuple, Optional
 
 def extract_solution(solution_str, method):
     # Split response to isolate assistant output
-    if "Assistant:" in solution_str:
-        processed_str = solution_str.split("Assistant:", 1)[1]
-    elif "<|im_start|>assistant" in solution_str:
-        processed_str = solution_str.split("<|im_start|>assistant", 1)[1]
-    else:
-        print("[Error] Failed to locate model response header")
-        return None, solution_str
+    # if "Assistant:" in solution_str:
+    #     processed_str = solution_str.split("Assistant:", 1)[1]
+    # elif "<|im_start|>assistant" in solution_str:
+    #     processed_str = solution_str.split("<|im_start|>assistant", 1)[1]
+    # else:
+    #     print("[Error] Failed to locate model response header")
+    #     return None, solution_str
+    processed_str = solution_str
 
     # Extract final answer using XML-style tags
     answer_pattern = r'<answer>(.*?)</answer>'
@@ -21,7 +22,7 @@ def extract_solution(solution_str, method):
 
     final_answer = matches[-1].group(1).strip()
 
-    format1_match = re.search(r"([A-Z]):", final_answer)
+    format1_match = re.search(r"([a-zA-Z]):", final_answer)
     if format1_match:
         return format1_match.group(1).strip(), processed_str
     
@@ -70,6 +71,16 @@ def validate_response_structure(processed_str: str) -> bool:
 
     return validation_passed
 
+def parse_ground_truth_text_format(ground_truth):
+    if ":" in ground_truth and "[{" in ground_truth:
+        return ground_truth
+    elif ":" in ground_truth:
+        format1_match = re.search(r"([a-zA-Z]):", ground_truth)
+        if format1_match:
+            return format1_match.group(1).strip()
+    else:
+        return ground_truth
+
 def compute_score(solution_str: str, ground_truth: str, method='strict', format_reward: int = 1, answer_reward: float = 1.0):
     """Computes comprehensive score for model response.
     
@@ -86,6 +97,7 @@ def compute_score(solution_str: str, ground_truth: str, method='strict', format_
     print("\n" + "="*80)
     print(" Processing New Sample ".center(80, '='))
     print(f"[Ground Truth]: {ground_truth}")
+    ground_truth = parse_ground_truth_text_format(ground_truth)
 
     # Extract model answer
     answer_text, processed_str= extract_solution(solution_str=solution_str, method=method)
@@ -104,7 +116,7 @@ def compute_score(solution_str: str, ground_truth: str, method='strict', format_
         print(f"\n[Content Validation]")
         print(f"  Expected: {ground_truth}")
         print(f"  Predicted: {answer_text}")
-        if answer_text == ground_truth:
+        if answer_text.casefold() == ground_truth.casefold():
             answer_score = 2       
             print("  Content validation: FULL MATCH")
         else:
