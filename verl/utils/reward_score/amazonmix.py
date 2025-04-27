@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Tuple, Optional
 
-def extract_solution(solution_str, method):
+def extract_solution(processed_str, method):
     # Split response to isolate assistant output
     # if "Assistant:" in solution_str:
     #     processed_str = solution_str.split("Assistant:", 1)[1]
@@ -10,7 +10,6 @@ def extract_solution(solution_str, method):
     # else:
     #     print("[Error] Failed to locate model response header")
     #     return None, solution_str
-    processed_str = solution_str
 
     # Extract final answer using XML-style tags
     answer_pattern = r'<answer>(.*?)</answer>'
@@ -43,7 +42,6 @@ def validate_response_structure(processed_str: str) -> bool:
 
     # Check required tags
     tags = {
-        'think_start': ('<think>', 1),
         'think_end': ('</think>', 1),
         'answer_start': ('<answer>', 1),
         'answer_end': ('</answer>', 1)
@@ -61,8 +59,8 @@ def validate_response_structure(processed_str: str) -> bool:
             validation_passed = False
 
     # Verify tag order
-    if (positions['think_start'] > positions['think_end'] or
-        positions['think_end'] > positions['answer_start'] or
+    if (positions['think_end'] > positions['answer_start'] or
+        positions['think_end'] > positions['answer_end'] or
         positions['answer_start'] > positions['answer_end']):
         print("  [Error] Incorrect tag order: Expected <think>...</think><answer>...</answer>")
         validation_passed = False
