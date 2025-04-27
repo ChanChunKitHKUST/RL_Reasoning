@@ -98,7 +98,7 @@ def compute_score(solution_str: str, ground_truth: str, method='strict', format_
     ground_truth = parse_ground_truth_text_format(ground_truth)
 
     # Extract model answer
-    answer_text, processed_str= extract_solution(solution_str=solution_str, method=method)
+    answer_text, processed_str= extract_solution(processed_str=solution_str, method=method)
     print(f"\n[Model Response]\n{processed_str}")
     print(f"\n[Processed Model Response]\n{answer_text}")
 
